@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting Room Booking System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+    @keyframes fadeIn { from { opacity:0; transform:translateY(20px);} to { opacity:1; transform:translateY(0);} }
+    @keyframes slideIn { from { opacity:0; transform:translateX(-20px);} to { opacity:1; transform:translateX(0);} }
+    @keyframes pulse { 0%,100% { transform:scale(1);} 50% { transform:scale(1.05); } }
+    .animate-fadeIn { animation: fadeIn 0.6s ease-out; }
+    .animate-slideIn { animation: slideIn 0.5s ease-out; }
+    .animate-pulse-custom { animation: pulse 2s infinite; }
+    .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .card-shadow { box-shadow:0 20px 25px -5px rgba(0,0,0,0.1),0 10px 10px -5px rgba(0,0,0,0.04); }
+</style>
+</head>
+<body class="min-h-screen gradient-bg">
+<!-- Login Page -->
+<div id="loginPage" class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl card-shadow p-8 w-full max-w-md animate-fadeIn">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-4 animate-pulse-custom">
+                <i class="fas fa-users text-white text-2xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Meeting Room</h1>
+            <p class="text-gray-600">ระบบจองห้องประชุม</p>
+        </div>
+        <form id="loginForm" class="space-y-6">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อผู้ใช้</label>
+                    <div class="relative">
+                        <i class="fas fa-user absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="username" required class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" placeholder="กรอกชื่อผู้ใช้">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่าน</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="password" id="password" required class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" placeholder="กรอกรหัสผ่าน">
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-lg">
+                <i class="fas fa-sign-in-alt mr-2"></i>เข้าสู่ระบบ
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Main Dashboard -->
+<div id="mainPage" class="hidden min-h-screen bg-gray-50">
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-users text-blue-600 text-2xl mr-3"></i>
+                    <h1 class="text-xl font-bold text-gray-900">Meeting Room Booking</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-700">สวัสดี, <span id="currentUser" class="font-semibold"></span></span>
+                    <button id="logoutBtn" class="text-gray-500 hover:text-gray-700 transition-colors">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            <div class="flex flex-wrap gap-2">
+                <button id="filterAll" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">ทั้งหมด</button>
+                <button id="filterAvailable" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">ว่าง</button>
+                <button id="filterBooked" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">จองแล้ว</button>
+            </div>
+            <button id="showHistoryBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                <i class="fas fa-history mr-2"></i>ประวัติการจอง
+            </button>
+        </div>
+
+        <div id="roomsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"></div>
+
+        <div id="historySection" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">ประวัติการจอง</h2>
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ห้อง</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ผู้จอง</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">เวลา</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Booking Modal -->
+<div id="bookingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md animate-fadeIn">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-900">จองห้องประชุม</h3>
+            <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <form id="bookingForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">ห้อง</label>
+                <input type="text" id="roomName" readonly class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">วันที่</label>
+                <input type="date" id="bookingDate" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">เวลาเริ่ม</label>
+                    <input type="time" id="startTime" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">เวลาสิ้นสุด</label>
+                    <input type="time" id="endTime" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อผู้จอง</label>
+                <input type="text" id="bookerName" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="กรอกชื่อผู้จอง">
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button type="button" id="cancelBooking" class="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">ยกเลิก</button>
+                <button type="submit" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">จองห้อง</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-5 right-5 flex flex-col gap-3 z-50"></div>
+
+<script>
+    // Application State
+    let currentUser = '';
+    let rooms = [
+        { id: 1, name: 'Meeting Room 1', capacity: 8, status: 'available', bookedBy: '', date: '', time: '', icon: 'fas fa-users' },
+        { id: 2, name: 'Meeting Room 2', capacity: 12, status: 'available', bookedBy: '', date: '', time: '', icon: 'fas fa-chalkboard' },
+        { id: 3, name: 'Meeting Room 3', capacity: 6, status: 'available', bookedBy: '', date: '', time: '', icon: 'fas fa-laptop' },
+        { id: 4, name: 'Meeting Room 4', capacity: 15, status: 'available', bookedBy: '', date: '', time: '', icon: 'fas fa-presentation-screen' },
+        { id: 5, name: 'Meeting Room 5', capacity: 10, status: 'available', bookedBy: '', date: '', time: '', icon: 'fas fa-video' }
+    ];
+    let bookingHistory = [];
+    let currentFilter = 'all';
+    let selectedRoomId = null;
+
+    // DOM Elements
+    const loginPage = document.getElementById('loginPage');
+    const mainPage = document.getElementById('mainPage');
+    const loginForm = document.getElementById('loginForm');
+    const bookingModal = document.getElementById('bookingModal');
+    const bookingForm = document.getElementById('bookingForm');
+    const roomsGrid = document.getElementById('roomsGrid');
+    const historySection = document.getElementById('historySection');
+
+    document.addEventListener('DOMContentLoaded', function() {
+        renderRooms();
+        setupEventListeners();
+        setMinDate();
+    });
+
+    function setupEventListeners() {
+        loginForm.addEventListener('submit', handleLogin);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        document.getElementById('closeModal').addEventListener('click', closeModal);
+        document.getElementById('cancelBooking').addEventListener('click', closeModal);
+        bookingForm.addEventListener('submit', handleBooking);
+        document.getElementById('filterAll').addEventListener('click', () => setFilter('all'));
+        document.getElementById('filterAvailable').addEventListener('click', () => setFilter('available'));
+        document.getElementById('filterBooked').addEventListener('click', () => setFilter('booked'));
+        document.getElementById('showHistoryBtn').addEventListener('click', toggleHistory);
+    }
+
+    function handleLogin(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        if (username && password) {
+            currentUser = username;
+            document.getElementById('currentUser').textContent = username;
+            loginPage.classList.add('hidden');
+            mainPage.classList.remove('hidden');
+            mainPage.classList.add('animate-fadeIn');
+        }
+    }
+
+    function handleLogout() {
+        currentUser = '';
+        mainPage.classList.add('hidden');
+        loginPage.classList.remove('hidden');
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        historySection.classList.add('hidden');
+    }
+
+    function setMinDate() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('bookingDate').min = today;
+    }
+
+    function renderRooms() {
+        const filteredRooms = rooms.filter(room => currentFilter === 'all' ? true : room.status === currentFilter);
+        roomsGrid.innerHTML = filteredRooms.map(room => `
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 animate-slideIn">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-4">
+                                <i class="${room.icon} text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">${room.name}</h3>
+                                <p class="text-sm text-gray-600">ความจุ ${room.capacity} คน</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${room.status==='available'?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}">
+                                <i class="fas fa-circle text-xs mr-1"></i>${room.status==='available'?'ว่าง':'จองแล้ว'}
+                            </span>
+                        </div>
+                    </div>
+                    ${room.status==='booked'?`
+                        <div class="bg-gray-50 rounded-lg p-3 mb-4">
+                            <p class="text-sm text-gray-600">จองโดย: <span class="font-semibold">${room.bookedBy}</span></p>
+                            <p class="text-sm text-gray-600">วันที่: ${room.date}</p>
+                            <p class="text-sm text-gray-600">เวลา: ${room.time}</p>
+                        </div>
+                    `: ''}
+                    <div class="flex gap-2">
+                        ${room.status==='available'?`
+                            <button onclick="openBookingModal(${room.id})" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-calendar-plus mr-2"></i>จองห้อง
+                            </button>
+                        `:`
+                            <button onclick="cancelRoomBooking(${room.id})" class="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                                <i class="fas fa-times mr-2"></i>ยกเลิกการจอง
+                            </button>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    window.openBookingModal = function(roomId) {
+        selectedRoomId = roomId;
+        const room = rooms.find(r=>r.id===roomId);
+        document.getElementById('roomName').value = room.name;
+        bookingModal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+        bookingModal.classList.add('hidden');
+        bookingForm.reset();
+        selectedRoomId = null;
+    }
+
+    function handleBooking(e) {
+        e.preventDefault();
+        const date = document.getElementById('bookingDate').value;
+        const startTime = document.getElementById('startTime').value;
+        const endTime = document.getElementById('endTime').value;
+        const bookerName = document.getElementById('bookerName').value;
+        if (startTime >= endTime) return showToast('เวลาเริ่มต้องน้อยกว่าเวลาสิ้นสุด','error');
+
+        const room = rooms.find(r=>r.id===selectedRoomId);
+        room.status='booked';
+        room.bookedBy=bookerName;
+        room.date=new Date(date).toLocaleDateString('th-TH');
+        room.time=`${startTime} - ${endTime}`;
+
+        bookingHistory.push({...room, bookedAt: new Date().toLocaleString('th-TH')});
+        renderRooms();
+        closeModal();
+        showToast('จองห้องสำเร็จ!','success');
+    }
+
+    window.cancelRoomBooking = function(roomId) {
+        const room = rooms.find(r=>r.id===roomId);
+        if(confirm(`คุณต้องการยกเลิกการจอง ${room.name}?`)) {
+            room.status='available';
+            room.bookedBy='';
+            room.date='';
+            room.time='';
+            renderRooms();
+            showToast('ยกเลิกการจองสำเร็จ!','success');
+        }
+    }
+
+    function setFilter(filter) {
+        currentFilter = filter;
+        renderRooms();
+    }
+
+    function toggleHistory() {
+        historySection.classList.toggle('hidden');
+        renderHistory();
+    }
+
+    function renderHistory() {
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = bookingHistory.map(b=>{
+            return `<tr>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${b.name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${b.bookedBy}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${b.date}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${b.time}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm ${b.status==='available'?'text-green-600':'text-red-600'}">${b.status==='available'?'ว่าง':'จองแล้ว'}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    // Toast Function
+    function showToast(message, type='success', duration=3000) {
+        const toast = document.createElement('div');
+        toast.className = `min-w-[250px] px-4 py-3 rounded-lg shadow-lg text-white flex items-center justify-between gap-2 transform transition-all duration-300 
+            ${type==='success'?'bg-green-500':type==='error'?'bg-red-500':'bg-gray-700'} opacity-0 translate-y-[-20px]`;
+        toast.innerHTML = `<span>${message}</span><button class="text-white font-bold">&times;</button>`;
+        const container = document.getElementById('toastContainer');
+        container.appendChild(toast);
+
+        setTimeout(()=>{ toast.classList.remove('opacity-0','translate-y-[-20px]'); toast.classList.add('opacity-100','translate-y-0'); },50);
+        toast.querySelector('button').addEventListener('click',()=>{ toast.classList.add('opacity-0','translate-y-[-20px]'); setTimeout(()=>container.removeChild(toast),300); });
+        setTimeout(()=>{ toast.classList.add('opacity-0','translate-y-[-20px]'); setTimeout(()=>container.removeChild(toast),300); },duration);
+    }
+</script>
+</body>
+</html>
